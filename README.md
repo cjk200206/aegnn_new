@@ -6,15 +6,15 @@
 </p>
 
 This repository contains the code for the paper "AEGNN: Asynchronous Event-based Graph Neural Networks"
-by Simon Schaefer, Daniel Gehrig and Davide Scaramuzza (CVPR 2022). If you use our code or refer to this 
+by Simon Schaefer*, Daniel Gehrig* and Davide Scaramuzza (CVPR 2022). If you use our code or refer to this 
 project, please cite it using 
 
 ```
 @inproceedings{aegnn2022cvpr,
-  author    = {S. Schaefer, D. Gehrig and D. Scaramuzza},
+  author    = {Schaefer, Simon and Gehrig, Daniel and Scaramuzza, Davide},
   title     = {AEGNN: Asynchronous Event-based Graph Neural Networks},
   booktitle = {IEEE Conference on Computer Vision and Pattern Recognition},
-  year      = {2022},
+  year      = {2022}
 }
 ```
 
