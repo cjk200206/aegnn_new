@@ -10,7 +10,7 @@ by Simon Schaefer*, Daniel Gehrig* and Davide Scaramuzza (CVPR 2022). If you use
 project, please cite it using 
 
 ```
-@inproceedings{aegnn2022cvpr,
+@inproceedings{Schaefer22cvpr,
   author    = {Schaefer, Simon and Gehrig, Daniel and Scaramuzza, Davide},
   title     = {AEGNN: Asynchronous Event-based Graph Neural Networks},
   booktitle = {IEEE Conference on Computer Vision and Pattern Recognition},
