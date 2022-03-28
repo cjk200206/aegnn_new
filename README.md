@@ -1,4 +1,9 @@
 # AEGNN: Asynchronous Event-based Graph Neural Networks
+<p align="center">
+  <a href="https://youtu.be/EaGRQp3OqNg">
+    <img src="assets/thumbnail.png" alt="Video to Events" width="600"/>
+  </a>
+</p>
 
 This repository contains the code for the paper "AEGNN: Asynchronous Event-based Graph Neural Networks"
 by Simon Schaefer, Daniel Gehrig and Davide Scaramuzza (CVPR 2022). If you use our code or refer to this 
