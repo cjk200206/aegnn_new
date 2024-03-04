@@ -12,6 +12,5 @@ class FullModelCheckpoint(pl.callbacks.ModelCheckpoint):
         trainer.dev_debugger.track_checkpointing_history(filepath)
         if trainer.should_rank_save_checkpoint:
             self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
-        wandb.unwatch()
         torch.save(trainer.model.state_dict(), filepath)
         logging.debug(f"Save model checkpoint @ {filepath}")
