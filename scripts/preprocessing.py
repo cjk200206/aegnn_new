@@ -1,6 +1,8 @@
 import argparse
 import pytorch_lightning as pl
 import torch
+import sys
+sys.path.append('..')
 
 import aegnn
 

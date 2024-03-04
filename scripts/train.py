@@ -5,6 +5,9 @@ import pytorch_lightning as pl
 import pytorch_lightning.loggers
 import wandb
 
+import sys
+sys.path.append('..')
+
 import aegnn
 
 
@@ -72,6 +75,7 @@ def main(args):
 
 
 if __name__ == '__main__':
+    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
     arguments = parse_args()
     pl.seed_everything(arguments.seed)
     main(arguments)
