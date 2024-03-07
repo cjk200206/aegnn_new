@@ -1,6 +1,7 @@
 import argparse
 import pytorch_lightning as pl
 import torch
+import os
 import sys
 sys.path.append('..')
 
@@ -17,6 +18,7 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    os.environ["CUDA_VISIBLE_DEVICES"] = '1'
     args = parse_args()
     if args.debug:
         aegnn.utils.loggers.LoggingLogger(None, name="debug")

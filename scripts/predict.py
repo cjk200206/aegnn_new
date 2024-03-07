@@ -44,6 +44,8 @@ def main(args):
 
     dm = aegnn.datasets.by_name(args.dataset).from_argparse_args(args)
     dm.setup()
+    # model = aegnn.models.RecognitionModel.load_from_checkpoint("/remote-home/share/cjk/aegnn_new/aegnn/data/scratch/checkpoints/syn/recognition/20240306113701/epoch=149-step=16499.pt")
+    # model.eval()
     model = aegnn.models.by_task(args.task)(args.model, args.dataset, num_classes=dm.num_classes,
                                             img_shape=dm.dims, dim=args.dim, bias=True, root_weight=True)
 
@@ -61,7 +63,7 @@ def main(args):
         aegnn.utils.callbacks.PHyperLogger(args),
         aegnn.utils.callbacks.EpochLogger(),
         aegnn.utils.callbacks.FileLogger([model, model.model, dm]),
-        # aegnn.utils.callbacks.FullModelCheckpoint(dirpath=checkpoint_path)
+        aegnn.utils.callbacks.FullModelCheckpoint(dirpath=checkpoint_path)
     ]
 
     trainer_kwargs = dict()
@@ -71,7 +73,9 @@ def main(args):
     trainer_kwargs["track_grad_norm"] = 2 if args.log_gradients else -1
 
     trainer = pl.Trainer.from_argparse_args(args, logger=logger, callbacks=callbacks, **trainer_kwargs)
-    trainer.fit(model, datamodule=dm)
+    # trainer.fit(model, datamodule=dm)
+    predictions = trainer.predict(model,datamodule=dm) #用pytorch_lighting进行预测工作，加载的datamodule里加入了测试的数据集
+    print(predictions)
 
 
 if __name__ == '__main__':
