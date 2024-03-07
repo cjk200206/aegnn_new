@@ -39,6 +39,7 @@ class EventDataModule(pl.LightningDataModule):
         logging.debug("Load and set up datasets")
         self.train_dataset = self._load_dataset("training")
         self.val_dataset = self._load_dataset("validation")
+        self.pre_dataset = self._load_dataset("validation") #加入需要预测的数据集
         if len(self.train_dataset) == 0 or len(self.val_dataset) == 0:
             raise UserWarning("No data found, check AEGNN_DATA_DIR environment variable!")
 
@@ -53,6 +54,13 @@ class EventDataModule(pl.LightningDataModule):
     def val_dataloader(self, num_workers: int = 2) -> torch.utils.data.DataLoader:
         return torch.utils.data.DataLoader(self.val_dataset, self.batch_size, num_workers=num_workers,
                                            collate_fn=self.collate_fn, shuffle=False)
+    
+    #加入预测的部分
+    def predict_dataloader(self, num_workers: int = 2) -> torch.utils.data.DataLoader:
+        return torch.utils.data.DataLoader(self.pre_dataset, self.batch_size, num_workers=num_workers,
+                                           collate_fn=self.collate_fn, shuffle=False)
+    
+    
 
     #########################################################################################################
     # Processing ############################################################################################

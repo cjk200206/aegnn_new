@@ -48,6 +48,9 @@ class RecognitionModel(pl.LightningModule):
         k = min(3, self.num_outputs - 1)
         self.log(f"Val/Accuracy_Top{k}", pl_metrics.accuracy(preds=predictions, target=batch.y, top_k=k))
         return predictions
+    
+    def predict_step(self, batch: torch_geometric.data.Batch, batch_idx: int) -> torch.Tensor:
+        return self(batch)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), weight_decay=5e-3, **self.optimizer_kwargs)

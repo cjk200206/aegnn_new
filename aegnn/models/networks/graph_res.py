@@ -19,7 +19,7 @@ class GraphRes(torch.nn.Module):
         dim = int(input_shape[-1])
 
         # Set dataset specific hyper-parameters.
-        if dataset == "ncars":
+        if dataset == "ncars" or "syn":
             kernel_size = 2
             n = [1, 8, 16, 16, 16, 32, 32, 32, 32]
             pooling_outputs = 32
