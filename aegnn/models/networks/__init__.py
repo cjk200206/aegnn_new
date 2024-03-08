@@ -1,5 +1,6 @@
 from .graph_res import GraphRes
 from .graph_wen import GraphWen
+from .graph_res_new import GraphResNew
 
 ################################################################################################
 # Access functions #############################################################################
@@ -12,5 +13,7 @@ def by_name(name: str) -> torch.nn.Module.__class__:
         return GraphRes
     elif name == "graph_wen":
         return GraphWen
+    elif name == "graph_res_new":
+        return GraphResNew
     else:
         raise NotImplementedError(f"Network {name} is not implemented!")

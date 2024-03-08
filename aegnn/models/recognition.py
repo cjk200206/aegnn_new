@@ -1,10 +1,11 @@
+from collections import OrderedDict
 import torch
 import torch_geometric
 import pytorch_lightning as pl
 import pytorch_lightning.metrics.functional as pl_metrics
 
 from torch.nn.functional import softmax
-from typing import Tuple
+from typing import Any, Dict, Tuple
 from .networks import by_name as model_by_name
 
 
@@ -20,6 +21,8 @@ class RecognitionModel(pl.LightningModule):
 
         model_input_shape = torch.tensor(img_shape + (dim, ), device=self.device)
         self.model = model_by_name(network)(dataset, model_input_shape, num_outputs=num_classes, **model_kwargs)
+
+
 
     def forward(self, data: torch_geometric.data.Batch) -> torch.Tensor:
         data.pos = data.pos[:, :self.dim]
@@ -45,6 +48,10 @@ class RecognitionModel(pl.LightningModule):
 
         self.log("Val/Loss", self.criterion(outputs, target=batch.y))
         self.log("Val/Accuracy", pl_metrics.accuracy(preds=y_prediction, target=batch.y))
+
+        # if batch_idx % 5 == 0:
+        #     print("pred:",y_prediction, "gt",batch.y) #加入效果查看
+
         k = min(3, self.num_outputs - 1)
         self.log(f"Val/Accuracy_Top{k}", pl_metrics.accuracy(preds=predictions, target=batch.y, top_k=k))
         return predictions
