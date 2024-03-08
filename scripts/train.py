@@ -61,7 +61,7 @@ def main(args):
         aegnn.utils.callbacks.PHyperLogger(args),
         aegnn.utils.callbacks.EpochLogger(),
         aegnn.utils.callbacks.FileLogger([model, model.model, dm]),
-        # aegnn.utils.callbacks.FullModelCheckpoint(dirpath=checkpoint_path)
+        aegnn.utils.callbacks.FullModelCheckpoint(dirpath=checkpoint_path)
     ]
 
     trainer_kwargs = dict()

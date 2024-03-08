@@ -30,6 +30,7 @@ def parse_args():
     parser.add_argument("--profile", action="store_true")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--gpu", default=None, type=int)
+    parser.add_argument("--ckpt",default="/remote-home/share/cjk/aegnn_new/aegnn/data/scratch/checkpoints/syn/recognition/20240307063937/epoch=18-step=2089.pt",type=str)
 
     parser = aegnn.datasets.EventDataModule.add_argparse_args(parser)
     return parser.parse_args()
@@ -44,10 +45,11 @@ def main(args):
 
     dm = aegnn.datasets.by_name(args.dataset).from_argparse_args(args)
     dm.setup()
-    # model = aegnn.models.RecognitionModel.load_from_checkpoint("/remote-home/share/cjk/aegnn_new/aegnn/data/scratch/checkpoints/syn/recognition/20240306113701/epoch=149-step=16499.pt")
-    # model.eval()
     model = aegnn.models.by_task(args.task)(args.model, args.dataset, num_classes=dm.num_classes,
                                             img_shape=dm.dims, dim=args.dim, bias=True, root_weight=True)
+    # model = aegnn.models.RecognitionModel.load_from_checkpoint(checkpoint_path = args.ckpt)
+    # model = pl.LightningModule.load_from_checkpoint(checkpoint_path = args.ckpt)
+    model.on_load_checkpoint(args.ckpt)
 
     if not args.debug:
         wandb_logger = pl.loggers.WandbLogger(project=project, save_dir=log_dir, settings=log_settings)
@@ -58,12 +60,8 @@ def main(args):
 
     checkpoint_path = os.path.join(log_dir, "checkpoints", args.dataset, args.task, experiment_name)
     callbacks = [
-        pl.callbacks.LearningRateMonitor(),
         aegnn.utils.callbacks.BBoxLogger(classes=dm.classes),
-        aegnn.utils.callbacks.PHyperLogger(args),
         aegnn.utils.callbacks.EpochLogger(),
-        aegnn.utils.callbacks.FileLogger([model, model.model, dm]),
-        aegnn.utils.callbacks.FullModelCheckpoint(dirpath=checkpoint_path)
     ]
 
     trainer_kwargs = dict()
