@@ -1,3 +1,7 @@
+"""
+用来实现图上的UNet,然后用作类似superpoint的结构
+"""
+
 import torch
 import torch_geometric
 
@@ -11,7 +15,7 @@ from torch_geometric.transforms import Cartesian
 from aegnn.models.layer import MaxPooling, MaxPoolingX
 
 
-class Graph_UNet(GraphUNet):
+class Graph_UNet(GraphUNet): 
 
     def __init__(self, dataset, input_shape: torch.Tensor, num_outputs: int, pooling_size=(16, 12),
                 bias: bool = False, root_weight: bool = False):
