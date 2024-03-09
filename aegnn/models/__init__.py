@@ -2,6 +2,7 @@ import aegnn.models.layer
 import aegnn.models.networks
 from aegnn.models.detection import DetectionModel
 from aegnn.models.recognition import RecognitionModel
+from aegnn.models.corner import CornerModel
 
 ################################################################################################
 # Access functions #############################################################################
@@ -14,5 +15,7 @@ def by_task(task: str) -> pl.LightningModule.__class__:
         return DetectionModel
     elif task == "recognition":
         return RecognitionModel
+    elif task == "corner":
+        return CornerModel
     else:
         raise NotImplementedError(f"Task {task} is not implemented!")
