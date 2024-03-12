@@ -31,8 +31,8 @@ class Graph_UNet(GraphUNet):
         #     raise NotImplementedError(f"No model parameters for dataset {dataset}")
 
         in_channels = 1
-        hidden_channels = 16 
+        hidden_channels = 64 
         out_channels = num_outputs
-        depth = 3
+        depth = 4
         super(Graph_UNet, self).__init__(in_channels,hidden_channels,out_channels,depth)
         

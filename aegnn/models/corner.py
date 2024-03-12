@@ -16,7 +16,7 @@ class CornerModel(pl.LightningModule):
                 dim: int = 3, learning_rate: float = 5e-3, **model_kwargs):
         super(CornerModel, self).__init__()
         self.optimizer_kwargs = dict(lr=learning_rate)
-        self.criterion = torch.nn.CrossEntropyLoss()
+        self.criterion = torch.nn.CrossEntropyLoss(weight=torch.tensor([10.0,1.0])) #调整网络的权重
         self.num_outputs = num_classes
         self.dim = dim
 
@@ -35,11 +35,12 @@ class CornerModel(pl.LightningModule):
     ###############################################################################################
     def training_step(self, batch: torch_geometric.data.Batch, batch_idx: int) -> torch.Tensor:
         outputs = self.forward(data=batch)
+        y_prediction = torch.softmax(outputs, dim=-1)
         loss = self.criterion(outputs, target=batch.y)
 
-        y_prediction = torch.argmax(outputs, dim=-1)
         accuracy = pl_metrics.accuracy(preds=y_prediction, target=batch.y)
-        self.logger.log_metrics({"Train/Loss": loss, "Train/Accuracy": accuracy}, step=self.trainer.global_step)
+        recall = pl_metrics.recall(preds=y_prediction,target=batch.y, num_classes=2, average='none')
+        self.logger.log_metrics({"Train/Loss": loss, "Train/Accuracy": accuracy,"Train/Recall": recall}, step=self.trainer.global_step)
         return loss
 
     def validation_step(self, batch: torch_geometric.data.Batch, batch_idx: int) -> torch.Tensor:
@@ -49,9 +50,10 @@ class CornerModel(pl.LightningModule):
 
         self.log("Val/Loss", self.criterion(outputs, target=batch.y))
         self.log("Val/Accuracy", pl_metrics.accuracy(preds=y_prediction, target=batch.y))
+        self.log("Val/Recall",pl_metrics.recall(preds=y_prediction,target=batch.y, num_classes=2, average='none')) #加入召回率评价
 
-        # if batch_idx % 8 == 0:
-        #     print("pred:",y_prediction, "gt",batch.y) #加入效果查看
+        if batch_idx == 9:
+             print("\npred:",y_prediction[-10:], "gt",batch.y[-10:]) #加入效果查看
 
         k = min(3, self.num_outputs - 1)
         self.log(f"Val/Accuracy_Top{k}", pl_metrics.accuracy(preds=predictions, target=batch.y, top_k=k))
@@ -61,7 +63,7 @@ class CornerModel(pl.LightningModule):
         return self(batch)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), weight_decay=5e-3, **self.optimizer_kwargs)
+        optimizer = torch.optim.Adam(self.parameters(), weight_decay=1e-2, **self.optimizer_kwargs)
         lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=LRPolicy())
         return [optimizer], [lr_scheduler]
 
