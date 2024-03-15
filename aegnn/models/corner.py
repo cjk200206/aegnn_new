@@ -4,10 +4,12 @@ import torch
 import torch_geometric
 import pytorch_lightning as pl
 import pytorch_lightning.metrics.functional as pl_metrics
+from torch_geometric.nn.models import GraphUNet
 
 from torch.nn.functional import softmax
 from typing import Any, Dict, Tuple
 from .networks import by_name as model_by_name
+# from .networks.graph_unet import Graph_UNet
 
 
 class CornerModel(pl.LightningModule):
@@ -21,8 +23,8 @@ class CornerModel(pl.LightningModule):
         self.dim = dim
 
         model_input_shape = torch.tensor(img_shape + (dim, ), device=self.device)
-        self.model = model_by_name(network)(dataset, model_input_shape, num_outputs=num_classes, **model_kwargs)
-
+        # self.model = model_by_name(network)(dataset, model_input_shape, num_outputs=num_classes, **model_kwargs)
+        self.model = GraphUNet(in_channels=1,hidden_channels=64,out_channels=2,depth=4)
 
 
     def forward(self, data: torch_geometric.data.Batch) -> torch.Tensor:
