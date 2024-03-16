@@ -123,4 +123,4 @@ class Syn_New(NCaltech101):
 
     @property
     def classes(self) -> List[str]:
-        return ["corner","not"]
+        return ["not","corner"]

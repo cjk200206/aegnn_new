@@ -9,7 +9,9 @@ from torch_geometric.nn.models import GraphUNet
 from torch.nn.functional import softmax
 from typing import Any, Dict, Tuple
 from .networks import by_name as model_by_name
-# from .networks.graph_unet import Graph_UNet
+from .networks.graph_epnt import EventPointNet
+
+from .utils.d2s import labels2Dto3D
 
 
 class CornerModel(pl.LightningModule):
@@ -18,19 +20,21 @@ class CornerModel(pl.LightningModule):
                 dim: int = 3, learning_rate: float = 5e-3, **model_kwargs):
         super(CornerModel, self).__init__()
         self.optimizer_kwargs = dict(lr=learning_rate)
-        self.criterion = torch.nn.CrossEntropyLoss(weight=torch.tensor([10.0,1.0])) #调整网络的权重
+        # self.criterion = torch.nn.CrossEntropyLoss(weight=torch.tensor([10.0,1.0])) #调整网络的权重
+        self.criterion = torch.nn.BCELoss() 
         self.num_outputs = num_classes
         self.dim = dim
 
         model_input_shape = torch.tensor(img_shape + (dim, ), device=self.device)
         # self.model = model_by_name(network)(dataset, model_input_shape, num_outputs=num_classes, **model_kwargs)
-        self.model = GraphUNet(in_channels=1,hidden_channels=64,out_channels=2,depth=4)
-
+        # self.model = GraphUNet(in_channels=1,hidden_channels=64,out_channels=2,depth=4)
+        self.model = EventPointNet(input_shape=model_input_shape,in_channels=1,out_channels=16)
 
     def forward(self, data: torch_geometric.data.Batch) -> torch.Tensor:
         data.pos = data.pos[:, :self.dim]
         data.edge_attr = data.edge_attr[:, :self.dim]
-        return self.model.forward(data.x,data.edge_index,data.batch) #为了迎合UNET
+        return self.model.forward(data)
+        # return self.model.forward(data.x,data.edge_index,data.batch) #为了迎合UNET
 
     ###############################################################################################
     # Steps #######################################################################################
@@ -38,7 +42,11 @@ class CornerModel(pl.LightningModule):
     def training_step(self, batch: torch_geometric.data.Batch, batch_idx: int) -> torch.Tensor:
         outputs = self.forward(data=batch)
         y_prediction = torch.softmax(outputs, dim=-1)
-        loss = self.criterion(outputs, target=batch.y)
+        # loss = self.criterion(outputs, target=batch.y)
+        #尝试模仿superpoint
+        label = labels2Dto3D(batch.y,16)
+        loss = self.criterion(y_prediction, target=label)
+
 
         accuracy = pl_metrics.accuracy(preds=y_prediction, target=batch.y)
         recall = pl_metrics.recall(preds=y_prediction,target=batch.y, num_classes=2, average='none')
@@ -47,12 +55,20 @@ class CornerModel(pl.LightningModule):
 
     def validation_step(self, batch: torch_geometric.data.Batch, batch_idx: int) -> torch.Tensor:
         outputs = self.forward(data=batch)
-        y_prediction = torch.argmax(outputs, dim=-1)
+        y_prediction = torch.softmax(outputs, dim=-1)
         predictions = softmax(outputs, dim=-1)
 
-        self.log("Val/Loss", self.criterion(outputs, target=batch.y))
-        self.log("Val/Accuracy", pl_metrics.accuracy(preds=y_prediction, target=batch.y))
-        self.log("Val/Recall",pl_metrics.recall(preds=y_prediction,target=batch.y, num_classes=2, average='none')) #加入召回率评价
+        #尝试模仿superpoint
+        label = labels2Dto3D(batch.y,16)
+
+        # self.log("Val/Loss", self.criterion(outputs, target=batch.y))
+        # self.log("Val/Accuracy", pl_metrics.accuracy(preds=y_prediction, target=batch.y))
+        # self.log("Val/Recall",pl_metrics.recall(preds=y_prediction,target=batch.y, num_classes=2, average='none')) #加入召回率评价
+
+        #模仿superpoint
+        self.log("Val/Loss", self.criterion(y_prediction, target=label.cuda()))
+        self.log("Val/Accuracy", pl_metrics.accuracy(preds=y_prediction, target=label))
+        self.log("Val/Recall",pl_metrics.recall(preds=y_prediction,target=label, num_classes=2, average='none')) #加入召回率评价
 
         if batch_idx == 9:
              print("\npred:",y_prediction[-10:], "gt",batch.y[-10:]) #加入效果查看

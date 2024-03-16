@@ -5,10 +5,11 @@
 import torch
 import torch_geometric
 
+from torch.nn import ReLU
 import torch.nn.functional as F
 from torch_sparse import spspmm
 
-from torch_geometric.nn import GCNConv, TopKPooling
+from torch_geometric.nn import SplineConv, TopKPooling, BatchNorm
 from torch_geometric.utils import (add_self_loops, remove_self_loops,
                                    sort_edge_index)
 from torch_geometric.utils.repeat import repeat
@@ -16,105 +17,87 @@ from torch_geometric.utils.repeat import repeat
 
 class EventPointNet(torch.nn.Module): 
 
-    def __init__(self, in_channels, hidden_channels, out_channels, depth,
-                 pool_ratios=0.5, sum_res=True, act=F.relu):
+    def __init__(self, input_shape: torch.Tensor,in_channels=1, out_channels=16,
+                 pool_ratios=0.5, act=F.relu):
         super().__init__()
-        assert depth >= 1
+        assert len(input_shape) == 3, "invalid input shape, should be (img_width, img_height, dim)"
+        dim = int(input_shape[-1])
+        kernel_size = 2
+        channels = [8,8,16,16,32,32,64,64] #encoder的通道数
+
         self.in_channels = in_channels
-        self.hidden_channels = hidden_channels
         self.out_channels = out_channels
-        self.depth = depth
         self.pool_ratios = pool_ratios
         self.act = act
-        self.sum_res = sum_res
 
-        channels = [4,8,16,32,64] #encoder的通道数
+        #Encoder
+        self.conv1 = SplineConv(self.in_channels, channels[0], dim = dim, kernel_size = kernel_size)
+        self.norm1 = BatchNorm(in_channels=channels[0])
+        self.conv2 = SplineConv(channels[0], channels[1], dim = dim, kernel_size = kernel_size)
+        self.norm2 = BatchNorm(in_channels=channels[1])
+        self.pool1 = TopKPooling(channels[1], self.pool_ratios)
 
-        self.encoder = torch.nn.ModuleList(
+        self.conv3 = SplineConv(channels[1], channels[2], dim = dim, kernel_size = kernel_size)
+        self.norm3 = BatchNorm(in_channels=channels[2])
+        self.conv4 = SplineConv(channels[2], channels[3], dim = dim, kernel_size = kernel_size)
+        self.norm4 = BatchNorm(in_channels=channels[3])
+        self.pool2 = TopKPooling(channels[3], self.pool_ratios)
 
-            GCNConv(in_channels, channels[0], improved=True),
-            TopKPooling(channels[0], self.pool_ratios),
-            GCNConv(channels[0], channels[1], improved=True),
-            TopKPooling(channels[1], self.pool_ratios),
-            GCNConv(channels[1], channels[2], improved=True),
-            TopKPooling(channels[2], self.pool_ratios),
-            GCNConv(channels[2], channels[3], improved=True),
-            TopKPooling(channels[3], self.pool_ratios),
-            GCNConv(channels[3], channels[4], improved=True), 
-        )
+        self.conv5 = SplineConv(channels[3], channels[4], dim = dim, kernel_size = kernel_size)
+        self.norm5 = BatchNorm(in_channels=channels[4])
+        self.conv6 = SplineConv(channels[4], channels[5], dim = dim, kernel_size = kernel_size)
+        self.norm6 = BatchNorm(in_channels=channels[5])
+        self.pool3 = TopKPooling(channels[5], self.pool_ratios)
+
+        self.conv7 = SplineConv(channels[5], channels[6], dim = dim, kernel_size = kernel_size)
+        self.norm7 = BatchNorm(in_channels=channels[6])
+        self.conv8 = SplineConv(channels[6], channels[7], dim = dim, kernel_size = kernel_size)
+        self.norm8 = BatchNorm(in_channels=channels[7])
+        self.pool4 = TopKPooling(channels[7], self.pool_ratios)
+        #输出节点是原来的0.5^4，即1/16
         
-        in_channels = channels if sum_res else 2 * channels
+        #Detector
+        self.convPa = SplineConv(channels[7], self.out_channels+1,dim = dim, kernel_size = kernel_size)
+        self.normPa = BatchNorm(in_channels=self.out_channels+1) #多加一个dustbin,16+1
+        
 
 
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        for layer in self.encoder:
-            layer.reset_parameters()
 
 
-    def forward(self, x, edge_index, batch=None):
-        """"""
-        if batch is None:
-            batch = edge_index.new_zeros(x.size(0))
-        edge_weight = x.new_ones(edge_index.size(1))
 
-        x = self.down_convs[0](x, edge_index, edge_weight)
-        x = self.act(x)
+    def forward(self,data: torch_geometric.data.Batch):
+        #Encoder
+        data.x = self.act(self.conv1(data.x, data.edge_index, data.edge_attr))
+        data.x = self.norm1(data.x)
+        data.x = self.act(self.conv2(data.x, data.edge_index, data.edge_attr))
+        data.x = self.norm2(data.x)
+        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool1(data.x,data.edge_index,data.edge_attr)
+        
+        data.x = self.act(self.conv3(data.x, data.edge_index, data.edge_attr))
+        data.x = self.norm3(data.x)
+        data.x = self.act(self.conv4(data.x, data.edge_index, data.edge_attr))
+        data.x = self.norm4(data.x)
+        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool2(data.x,data.edge_index,data.edge_attr)
 
-        xs = [x]
-        edge_indices = [edge_index]
-        edge_weights = [edge_weight]
-        perms = []
+        data.x = self.act(self.conv5(data.x, data.edge_index, data.edge_attr))
+        data.x = self.norm5(data.x)
+        data.x = self.act(self.conv6(data.x, data.edge_index, data.edge_attr))
+        data.x = self.norm6(data.x)
+        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool3(data.x,data.edge_index,data.edge_attr)
 
-        for i in range(1, self.depth + 1):
-            edge_index, edge_weight = self.augment_adj(edge_index, edge_weight,
-                                                       x.size(0))
-            x, edge_index, edge_weight, batch, perm, _ = self.pools[i - 1](
-                x, edge_index, edge_weight, batch)
+        data.x = self.act(self.conv7(data.x, data.edge_index, data.edge_attr))
+        data.x = self.norm7(data.x)
+        data.x = self.act(self.conv8(data.x, data.edge_index, data.edge_attr))
+        data.x = self.norm8(data.x)
+        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool4(data.x,data.edge_index,data.edge_attr)
 
-            x = self.down_convs[i](x, edge_index, edge_weight)
-            x = self.act(x)
-
-            if i < self.depth:
-                xs += [x]
-                edge_indices += [edge_index]
-                edge_weights += [edge_weight]
-            perms += [perm]
-
-        for i in range(self.depth):
-            j = self.depth - 1 - i
-
-            res = xs[j]
-            edge_index = edge_indices[j]
-            edge_weight = edge_weights[j]
-            perm = perms[j]
-
-            up = torch.zeros_like(res)
-            up[perm] = x
-            x = res + up if self.sum_res else torch.cat((res, up), dim=-1)
-
-            x = self.up_convs[i](x, edge_index, edge_weight)
-            x = self.act(x) if i < self.depth - 1 else x
-
+        #Detector
+        data.x = self.act(self.convPa(data.x, data.edge_index, data.edge_attr))
+        x = self.normPa(data.x)
+        
         return x
 
-    def augment_adj(self, edge_index, edge_weight, num_nodes):
-        edge_index, edge_weight = remove_self_loops(edge_index, edge_weight)
-        edge_index, edge_weight = add_self_loops(edge_index, edge_weight,
-                                                 num_nodes=num_nodes)
-        edge_index, edge_weight = sort_edge_index(edge_index, edge_weight,
-                                                  num_nodes)
-        edge_index, edge_weight = spspmm(edge_index, edge_weight, edge_index,
-                                         edge_weight, num_nodes, num_nodes,
-                                         num_nodes)
-        edge_index, edge_weight = remove_self_loops(edge_index, edge_weight)
-        return edge_index, edge_weight
 
-    def __repr__(self) -> str:
-        return (f'{self.__class__.__name__}({self.in_channels}, '
-                f'{self.hidden_channels}, {self.out_channels}, '
-                f'depth={self.depth}, pool_ratios={self.pool_ratios})')
 
 
 
