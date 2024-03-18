@@ -39,7 +39,7 @@ class SeqToDepth(nn.Module):
         # output = np.pad(output,(length,self.seq_size),mode="constant",constant_values=0)
         return output
 
-def labels2Dto3D(labels,seq_size,add_dustbin=True):
+def labels2Dto3D(labels,seq_size,add_dustbin=True,maxlabel = True):
     seq2depth = SeqToDepth(seq_size)
     labels = seq2depth(labels)
     
@@ -51,4 +51,9 @@ def labels2Dto3D(labels,seq_size,add_dustbin=True):
         ## norm
         dn = labels.sum(dim=1)
         labels = labels.div(torch.unsqueeze(dn, 1))
+        if maxlabel: #保证只有一个标签是1
+            labels_indices = torch.argmax(labels,dim=1)
+            for row in range(len(labels)):
+                labels[row,:] = 0
+                labels[row,labels_indices[row]] = 1
     return labels
