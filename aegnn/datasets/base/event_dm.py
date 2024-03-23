@@ -109,7 +109,7 @@ class EventDataModule(pl.LightningDataModule):
         # Checking the loaded data for the sake of assuring shape consistency.
         assert data.pos.shape[0] == data.x.shape[0], "x and pos not matching in length"
         assert data.pos.shape[-1] >= 2
-        assert data.x.shape[-1] == 1
+        # assert data.x.shape[-1] == 1 #修改
         assert data.edge_attr.shape[0] == data.edge_index.shape[1], "edges index and attribute not matching"
         assert data.edge_attr.shape[-1] >= 2, "wrong edge attribute dimension"
         if hasattr(data, 'bbox'):

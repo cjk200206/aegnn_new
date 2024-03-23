@@ -56,4 +56,4 @@ def labels2Dto3D(labels,seq_size,add_dustbin=True,maxlabel = True):
             for row in range(len(labels)):
                 labels[row,:] = 0
                 labels[row,labels_indices[row]] = 1
-    return labels
+    return labels.cuda(),labels_indices.cuda()

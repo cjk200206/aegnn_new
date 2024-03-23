@@ -76,7 +76,7 @@ def main(args):
 
 if __name__ == '__main__':
     # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-    os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+    # os.environ["CUDA_VISIBLE_DEVICES"] = '0'
     arguments = parse_args()
     pl.seed_everything(arguments.seed)
     main(arguments)

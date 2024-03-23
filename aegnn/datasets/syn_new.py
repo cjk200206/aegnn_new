@@ -17,7 +17,8 @@ class Syn_New(NCaltech101):
                  transform: Optional[Callable[[Data], Data]] = None):
         super(Syn_New, self).__init__(batch_size, shuffle, num_workers, pin_memory=pin_memory, transform=transform)
         self.dims = (346, 260)  # overwrite image shape,改到davis346格式
-        pre_processing_params = {"r": 3.0, "d_max": 32, "n_samples": 10000, "sampling": True}
+        # pre_processing_params = {"r": 3.0, "d_max": 32, "n_samples": 10000, "sampling": True}
+        pre_processing_params = {"r": 3.0, "d_max": 64, "n_samples": 10000, "sampling": False}
         self.save_hyperparameters({"preprocessing": pre_processing_params})
 
     def read_annotations(self, raw_file: str) -> Optional[np.ndarray]:
@@ -38,9 +39,11 @@ class Syn_New(NCaltech101):
         events = np.loadtxt(raw_file)
         events,start_idx,end_idx = Syn_New.event_cropping(events,len(events)) #裁剪过后的事件
         events = torch.from_numpy(events).float().cuda()
-        x, pos = events[:, [-2]], events[:, :3]
+        # x, pos = events[:, [-2]], events[:, :3]
+        x, pos = events[:, :4], events[:, :3] #尝试调整x的内容，成为整个事件
+        # x, pos = torch.ones(events[:,[-2]].shape), events[:, :3] #尝试调整x的内容，忽略极性
         pos[:,:2]=pos[:,:2].float()
-        pos[:,2]=pos[:,2]*1e-9 #把时间转换成秒的科学计数
+        # pos[:,2]=pos[:,2]*1e-9 #把时间转换成秒的科学计数
         return Data(x=x, pos=pos),start_idx,end_idx
     
     #修改预处理的流程，适应随机裁剪
@@ -84,10 +87,11 @@ class Syn_New(NCaltech101):
         data.pos[:, 2] = normalize_time(data.pos[:, 2])
 
         # Coarsen graph by uniformly sampling n points from the event point cloud.
-        data = self.sub_sampling(data, n_samples=params["n_samples"], sub_sample=params["sampling"])
+        # data = self.sub_sampling(data, n_samples=params["n_samples"], sub_sample=params["sampling"]) #不要下采样
 
         # Radius graph generation.
         data.edge_index = radius_graph(data.pos, r=params["r"], max_num_neighbors=params["d_max"])
+        
         return data
 
     #########################################################################################################

@@ -19,14 +19,20 @@ class CornerSuperpointModel(pl.LightningModule):
     def __init__(self, network, dataset: str, num_classes, img_shape: Tuple[int, int],
                 dim: int = 3, learning_rate: float = 5e-3, **model_kwargs):
         super(CornerSuperpointModel, self).__init__()
+        #设置损失权重
+        self.in_channels = 4
+        self.out_channels = 16
+        loss_weight = torch.ones(self.out_channels+1)
+        loss_weight[self.out_channels] = 2
+        loss_weight.squeeze()
+
         self.optimizer_kwargs = dict(lr=learning_rate)
-        self.criterion = torch.nn.BCELoss() 
+        # self.criterion = torch.nn.BCELoss() 
+        self.criterion = torch.nn.CrossEntropyLoss(weight=loss_weight)
         self.num_outputs = num_classes
         self.dim = dim
-
         model_input_shape = torch.tensor(img_shape + (dim, ), device=self.device)
-
-        self.model = EventPointNet(input_shape=model_input_shape,in_channels=1,out_channels=16)
+        self.model = EventPointNet(input_shape=model_input_shape,in_channels=self.in_channels,out_channels=self.out_channels)
 
     def forward(self, data: torch_geometric.data.Batch) -> torch.Tensor:
         data.pos = data.pos[:, :self.dim]
@@ -38,32 +44,32 @@ class CornerSuperpointModel(pl.LightningModule):
     ###############################################################################################
     def training_step(self, batch: torch_geometric.data.Batch, batch_idx: int) -> torch.Tensor:
         outputs = self.forward(data=batch)
-        y_prediction = torch.softmax(outputs, dim=-1)
+        y_prediction = torch.argmax(outputs, dim=-1)
+        predictions = softmax(outputs, dim=-1)
         #尝试模仿superpoint
-        label = labels2Dto3D(batch.y,16).cuda()
-        label_int = label.to(torch.int)
-        loss = self.criterion(y_prediction, target=label)
+        label,label_indice = labels2Dto3D(batch.y,self.out_channels)
 
-        accuracy = pl_metrics.accuracy(top_k=1,preds=y_prediction, target=label_int)
-        recall = pl_metrics.recall(top_k=1,preds=y_prediction,target=label_int)
+        # loss = self.criterion(predictions, target=label)
+        loss = self.criterion(predictions.cuda(), target=label_indice.cuda())
+        accuracy = pl_metrics.accuracy(preds=y_prediction, target=label_indice)
+        recall = pl_metrics.recall(preds=y_prediction,target=label_indice)
         self.logger.log_metrics({"Train/Loss": loss, "Train/Accuracy": accuracy,"Train/Recall": recall}, step=self.trainer.global_step)
         return loss
 
     def validation_step(self, batch: torch_geometric.data.Batch, batch_idx: int) -> torch.Tensor:
         outputs = self.forward(data=batch)
-        y_prediction = torch.softmax(outputs, dim=-1)
+        y_prediction = torch.argmax(outputs, dim=-1)
         predictions = softmax(outputs, dim=-1)
-
         #尝试模仿superpoint
-        label = labels2Dto3D(batch.y,16).cuda()
-        label_int = label.to(torch.int)
+        label,label_indice = labels2Dto3D(batch.y,self.out_channels)
 
-        self.log("Val/Loss", self.criterion(y_prediction, target=label))
-        self.log("Val/Accuracy", pl_metrics.accuracy(preds=y_prediction, target=label_int))
-        self.log("Val/Recall",pl_metrics.recall(preds=y_prediction,target=label_int)) #加入召回率评价
+        # self.log("Val/Loss", self.criterion(predictions, target=label))
+        self.log("Val/Loss", self.criterion(predictions, target=label_indice))
+        self.log("Val/Accuracy", pl_metrics.accuracy(preds=y_prediction, target=label_indice))
+        self.log("Val/Recall",pl_metrics.recall(preds=y_prediction,target=label_indice)) #加入召回率评价
 
         if batch_idx == 9:
-            print("\npred:",y_prediction[-10:], "gt",label_int[-10:]) #加入效果查看
+            print("\npred:",y_prediction[-20:], "\ngt:",label_indice[-20:]) #加入效果查看
 
         return predictions
     
