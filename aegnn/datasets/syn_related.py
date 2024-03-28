@@ -11,14 +11,14 @@ from .utils.normalization import normalize_time
 from .ncaltech101 import NCaltech101
 
 
-class Syn_New(NCaltech101):
+class Syn_Related(NCaltech101):
 
     def __init__(self, batch_size: int = 64, shuffle: bool = True, num_workers: int = 8, pin_memory: bool = False,
                  transform: Optional[Callable[[Data], Data]] = None):
-        super(Syn_New, self).__init__(batch_size, shuffle, num_workers, pin_memory=pin_memory, transform=transform)
+        super(Syn_Related, self).__init__(batch_size, shuffle, num_workers, pin_memory=pin_memory, transform=transform)
         self.dims = (346, 260)  # overwrite image shape,改到davis346格式
         # pre_processing_params = {"r": 3.0, "d_max": 32, "n_samples": 10000, "sampling": True}
-        pre_processing_params = {"r": 3.0, "d_max": 64, "n_samples": 10000, "sampling": False}
+        pre_processing_params = {"r": 1.0, "d_max": 8, "n_samples": 10000, "sampling": False}
         self.save_hyperparameters({"preprocessing": pre_processing_params})
 
     def read_annotations(self, raw_file: str) -> Optional[np.ndarray]:
@@ -30,14 +30,14 @@ class Syn_New(NCaltech101):
         corner_label = events[start_idx:end_idx+1][:,-1]
         labels_new = []
         for label in corner_label:
-            label = "corner" if label == 1 else "not"
+            label = "corner" if label == 1 or 2 else "not" #将角点和周围的关联点都当成角点，扩充数据
             labels_new.append(label)
         return labels_new #获取事件段的标签
 
     @staticmethod
     def load(raw_file: str) -> Data:
         events = np.loadtxt(raw_file)
-        events,start_idx,end_idx = Syn_New.event_cropping(events,len(events)) #裁剪过后的事件
+        events,start_idx,end_idx = Syn_Related.event_cropping(events,len(events)) #裁剪过后的事件
         events = torch.from_numpy(events).float().cuda()
         # x, pos = events[:, [-2]], events[:, :3]
         # x, pos = events[:, :4], events[:, :3] #尝试调整x的内容，成为整个事件
@@ -92,6 +92,12 @@ class Syn_New(NCaltech101):
         # Radius graph generation.
         data.edge_index = radius_graph(data.pos, r=params["r"], max_num_neighbors=params["d_max"])
         
+        # 生成关联点
+        corner_idx = torch.where(data.y==1)[0]
+        related_points_indices_raw = torch.where(torch.isin(data.edge_index[1],corner_idx))[0] #找寻角点所在的边的索引
+        related_points_idx_raw = data.edge_index[0,related_points_indices_raw] #找寻角点所连接的点的索引
+        related_points_idx = related_points_idx_raw[torch.where(data.y[related_points_idx_raw]==0)[0]] #排除角点连接的角点
+        data.y[related_points_idx[:]]=2 #赋值新的标记
         return data
 
     #########################################################################################################

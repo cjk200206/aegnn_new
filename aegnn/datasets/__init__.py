@@ -5,6 +5,7 @@ from aegnn.datasets.ncars import NCars
 from aegnn.datasets.gen1 import Gen1
 from aegnn.datasets.syn import Syn
 from aegnn.datasets.syn_new import Syn_New
+from aegnn.datasets.syn_related import Syn_Related
 
 
 ################################################################################################
@@ -21,5 +22,7 @@ def by_name(name: str) -> EventDataModule.__class__:
         return Syn
     elif name.lower() == "syn_new":
         return Syn_New
+    elif name.lower() == "syn_related":
+        return Syn_Related
     else:
         raise NotImplementedError(f"Dataset with name {name} is not known!")

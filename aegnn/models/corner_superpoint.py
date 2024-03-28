@@ -20,10 +20,10 @@ class CornerSuperpointModel(pl.LightningModule):
                 dim: int = 3, learning_rate: float = 5e-3, **model_kwargs):
         super(CornerSuperpointModel, self).__init__()
         #设置损失权重
-        self.in_channels = 4
+        self.in_channels = 3
         self.out_channels = 16
         loss_weight = torch.ones(self.out_channels+1)
-        loss_weight[self.out_channels] = 2
+        # loss_weight[self.out_channels] = 16
         loss_weight.squeeze()
 
         self.optimizer_kwargs = dict(lr=learning_rate)
@@ -50,7 +50,8 @@ class CornerSuperpointModel(pl.LightningModule):
         label,label_indice = labels2Dto3D(batch.y,self.out_channels)
 
         # loss = self.criterion(predictions, target=label)
-        loss = self.criterion(predictions.cuda(), target=label_indice.cuda())
+        # loss = self.criterion(predictions.cuda(), target=label_indice.cuda())
+        loss = self.criterion(outputs.cuda(), target=label.cuda())
         accuracy = pl_metrics.accuracy(preds=y_prediction, target=label_indice)
         recall = pl_metrics.recall(preds=y_prediction,target=label_indice)
         self.logger.log_metrics({"Train/Loss": loss, "Train/Accuracy": accuracy,"Train/Recall": recall}, step=self.trainer.global_step)
@@ -63,8 +64,8 @@ class CornerSuperpointModel(pl.LightningModule):
         #尝试模仿superpoint
         label,label_indice = labels2Dto3D(batch.y,self.out_channels)
 
-        # self.log("Val/Loss", self.criterion(predictions, target=label))
-        self.log("Val/Loss", self.criterion(predictions, target=label_indice))
+        self.log("Val/Loss", self.criterion(outputs, target=label))
+        # self.log("Val/Loss", self.criterion(predictions, target=label_indice))
         self.log("Val/Accuracy", pl_metrics.accuracy(preds=y_prediction, target=label_indice))
         self.log("Val/Recall",pl_metrics.recall(preds=y_prediction,target=label_indice)) #加入召回率评价
 
