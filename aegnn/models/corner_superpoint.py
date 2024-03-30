@@ -20,7 +20,7 @@ class CornerSuperpointModel(pl.LightningModule):
                 dim: int = 3, learning_rate: float = 5e-3, **model_kwargs):
         super(CornerSuperpointModel, self).__init__()
         #设置损失权重
-        self.in_channels = 3
+        self.in_channels = 9
         self.out_channels = 16
         loss_weight = torch.ones(self.out_channels+1)
         # loss_weight[self.out_channels] = 16

@@ -29,8 +29,11 @@ class Syn_Related(NCaltech101):
         events = np.loadtxt(raw_file)
         corner_label = events[start_idx:end_idx+1][:,-1]
         labels_new = []
-        for label in corner_label:
-            # label = "corner" if label == 1 or 2 else "not" #将角点和周围的关联点都当成角点，扩充数据
+        for label in corner_label: #将角点和周围的关联点都当成角点，扩充数据
+        #     if label == 1 or label == 2:
+        #         label == "corner"
+        #     else:
+        #         label == "not"
             label = "corner" if label == 1 else "not" #将角点和周围的关联点都当成角点，扩充数据
             labels_new.append(label)
         return labels_new #获取事件段的标签
@@ -117,12 +120,12 @@ class Syn_Related(NCaltech101):
         # 生成表示角点的corner_feature表示
         data.x = self.create_corner_feature(data)
         
-        # # 生成关联点
-        # corner_idx = torch.where(data.y==1)[0]
-        # related_points_indices_raw = torch.where(torch.isin(data.edge_index[1],corner_idx))[0] #找寻角点所在的边的索引
-        # related_points_idx_raw = data.edge_index[0,related_points_indices_raw] #找寻角点所连接的点的索引
-        # related_points_idx = related_points_idx_raw[torch.where(data.y[related_points_idx_raw]==0)[0]] #排除角点连接的角点
-        # data.y[related_points_idx[:]]=2 #赋值新的标记
+        # 生成关联点
+        corner_idx = torch.where(data.y==1)[0]
+        related_points_indices_raw = torch.where(torch.isin(data.edge_index[1],corner_idx))[0] #找寻角点所在的边的索引
+        related_points_idx_raw = data.edge_index[0,related_points_indices_raw] #找寻角点所连接的点的索引
+        related_points_idx = related_points_idx_raw[torch.where(data.y[related_points_idx_raw]==0)[0]] #排除角点连接的角点
+        data.y[related_points_idx[:]]=1 #赋值新的标记
 
 
         return data
