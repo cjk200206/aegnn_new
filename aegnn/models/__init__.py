@@ -4,6 +4,7 @@ from aegnn.models.detection import DetectionModel
 from aegnn.models.recognition import RecognitionModel
 from aegnn.models.corner import CornerModel
 from aegnn.models.corner_superpoint import CornerSuperpointModel
+from aegnn.models.corner_heatmap import CornerHeatMapModel
 
 ################################################################################################
 # Access functions #############################################################################
@@ -20,5 +21,7 @@ def by_task(task: str) -> pl.LightningModule.__class__:
         return CornerModel
     elif task == "corner_superpoint":
         return CornerSuperpointModel
+    elif task == "corner_heatmap":
+        return CornerHeatMapModel
     else:
         raise NotImplementedError(f"Task {task} is not implemented!")
