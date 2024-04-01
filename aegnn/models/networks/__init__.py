@@ -2,6 +2,7 @@ from .graph_res import GraphRes
 from .graph_wen import GraphWen
 from .graph_res_new import GraphResNew
 from .graph_epnt import EventPointNet
+from .graph_heatmap import HeatMapNet
 
 ################################################################################################
 # Access functions #############################################################################
@@ -18,5 +19,7 @@ def by_name(name: str) -> torch.nn.Module.__class__:
         return GraphResNew
     elif name == "graph_epnt":
         return EventPointNet
+    elif name == "graph_heatmap":
+        return HeatMapNet
     else:
         raise NotImplementedError(f"Network {name} is not implemented!")

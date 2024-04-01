@@ -57,6 +57,20 @@ class CornerSuperpointModel(pl.LightningModule):
         self.logger.log_metrics({"Train/Loss": loss, "Train/Accuracy": accuracy,"Train/Recall": recall}, step=self.trainer.global_step)
         return loss
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     def validation_step(self, batch: torch_geometric.data.Batch, batch_idx: int) -> torch.Tensor:
         outputs = self.forward(data=batch)
         y_prediction = torch.argmax(outputs, dim=-1)
