@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import math
 import numpy as np
+from torch_geometric.data import Data 
 
 
 # class DepthToSpace(nn.Module):
@@ -57,3 +58,15 @@ def labels2Dto3D(labels,seq_size,add_dustbin=True,maxlabel = True):
                 labels[row,:] = 0
                 labels[row,labels_indices[row]] = 1
     return labels.cuda(),labels_indices.cuda()
+
+# def create_heatmap(batch: Data.batch,corner_num = 3):
+#         batch.batch()
+        
+#         corner_idx = torch.where(batch.y==1)[0]
+#         first_idx = corner_idx[:corner_num]
+#         last_idx = corner_idx[-corner_num:]
+#         new_idx = torch.cat([first_idx,last_idx]).unsqueeze(1)
+#         heatmap = torch.zeros_like(batch.y).unsqueeze(0).expand(corner_num*2,-1) #创建多通道的heatmap
+#         heatmap = heatmap.clone().scatter_(1,new_idx,torch.ones_like(new_idx)) #将指定位置标记，做成多通道热图
+    
+#     return heatmap

@@ -17,7 +17,7 @@ from torch_geometric.utils.repeat import repeat
 
 class HeatMapNet(torch.nn.Module): 
 
-    def __init__(self, input_shape: torch.Tensor,in_channels=9, out_channels=1,
+    def __init__(self, input_shape: torch.Tensor,in_channels=9, out_channels=6,
                  pool_ratios=0.5, act=F.elu):
         super().__init__()
         assert len(input_shape) == 3, "invalid input shape, should be (img_width, img_height, dim)"

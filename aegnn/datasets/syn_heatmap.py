@@ -2,6 +2,7 @@ import glob
 import numpy as np
 import os
 import torch
+import torch_geometric
 
 from torch_geometric.data import Data
 from torch_geometric.nn.pool import radius_graph
@@ -101,6 +102,26 @@ class Syn_Heatmap(NCaltech101):
         corner_feature = corner_template.view(-1,9) #将角点模板转换到一维
         return corner_feature
     
+    #选取开头和结尾各corner_num个角点
+    def create_heatmap(self,data: Data,corner_num = 3) -> Data.y:
+        corner_idx = torch.where(data.y==1)[0]
+        first_idx = corner_idx[:corner_num]
+        last_idx = corner_idx[-corner_num:]
+        new_idx = torch.cat([first_idx,last_idx]).unsqueeze(1)
+        heatmap = torch.zeros_like(data.y).unsqueeze(0).expand(corner_num*2,-1) #创建多通道的heatmap
+        heatmap = heatmap.clone().scatter_(1,new_idx,torch.ones_like(new_idx)) #将指定位置标记，做成多通道热图
+        
+        return heatmap.T
+
+
+    #生成关联点
+    def create_related_points(self,data: Data) -> Data.y:
+        corner_idx = torch.where(data.y==1)[0]
+        related_points_indices_raw = torch.where(torch.isin(data.edge_index[1],corner_idx))[0] #找寻角点所在的边的索引
+        related_points_idx_raw = data.edge_index[0,related_points_indices_raw] #找寻角点所连接的点的索引
+        related_points_idx = related_points_idx_raw[torch.where(data.y[related_points_idx_raw]==0)[0]] #排除角点连接的角点
+        data.y[related_points_idx[:]]=1 #赋值新的标记
+        return data.y
     
 
     def pre_transform(self, data: Data) -> Data:
@@ -117,14 +138,12 @@ class Syn_Heatmap(NCaltech101):
 
         # 生成表示角点的corner_feature表示
         data.x = self.create_corner_feature(data)
-        
-        # 生成关联点
-        corner_idx = torch.where(data.y==1)[0]
-        related_points_indices_raw = torch.where(torch.isin(data.edge_index[1],corner_idx))[0] #找寻角点所在的边的索引
-        related_points_idx_raw = data.edge_index[0,related_points_indices_raw] #找寻角点所连接的点的索引
-        related_points_idx = related_points_idx_raw[torch.where(data.y[related_points_idx_raw]==0)[0]] #排除角点连接的角点
-        data.y[related_points_idx[:]]=1 #赋值新的标记
 
+        # 保留一部分的角点，生成heatmap
+        data.y = self.create_heatmap(data)
+        
+        # # 生成关联点
+        # data.y = self.create_related_points(data)
 
         return data
 
@@ -162,3 +181,4 @@ class Syn_Heatmap(NCaltech101):
     @property
     def classes(self) -> List[str]:
         return ["not","corner"]
+

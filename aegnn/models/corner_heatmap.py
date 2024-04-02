@@ -21,7 +21,7 @@ class CornerHeatMapModel(pl.LightningModule):
         super(CornerHeatMapModel, self).__init__()
         #设置损失权重
         self.in_channels = 9
-        self.out_channels = 1
+        self.out_channels = 6
 
         self.optimizer_kwargs = dict(lr=learning_rate)
         self.criterion = torch.nn.BCELoss() 
@@ -46,7 +46,7 @@ class CornerHeatMapModel(pl.LightningModule):
         # #尝试模仿superpoint
         # label,label_indice = labels2Dto3D(batch.y,self.out_channels)
 
-        label = batch.y.unsqueeze(dim = 1)
+        label = batch.y
         loss = self.criterion(predictions, target=label.cuda().to(torch.float))
         # accuracy = pl_metrics.accuracy(preds=y_prediction, target=label)
         # recall = pl_metrics.recall(preds=y_prediction,target=label)
@@ -61,7 +61,7 @@ class CornerHeatMapModel(pl.LightningModule):
         predictions = softmax(outputs, dim=0)
         # #尝试模仿superpoint
         # label,label_indice = labels2Dto3D(batch.y,self.out_channels)
-        label = batch.y.unsqueeze(dim = 1)
+        label = batch.y
 
         self.log("Val/Loss", self.criterion(predictions, target=label.to(torch.float)))
         # self.log("Val/Loss", self.criterion(predictions, target=label_indice))
@@ -69,7 +69,7 @@ class CornerHeatMapModel(pl.LightningModule):
         # self.log("Val/Recall",pl_metrics.recall(preds=y_prediction,target=label)) #加入召回率评价
 
         if batch_idx == 9:
-            print("\npred:",y_prediction, "\ngt:",label[y_prediction]) #加入效果查看
+            print("\npred:",y_prediction, "\ngt:",torch.where(label==1)) #加入效果查看
 
         return predictions
     
@@ -80,6 +80,8 @@ class CornerHeatMapModel(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), weight_decay=1e-2, **self.optimizer_kwargs)
         lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=LRPolicy())
         return [optimizer], [lr_scheduler]
+    
+    
 
 
 class LRPolicy(object):
