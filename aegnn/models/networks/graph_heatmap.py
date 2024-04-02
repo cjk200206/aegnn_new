@@ -17,7 +17,7 @@ from torch_geometric.utils.repeat import repeat
 
 class HeatMapNet(torch.nn.Module): 
 
-    def __init__(self, input_shape: torch.Tensor,in_channels=9, out_channels=10,
+    def __init__(self, input_shape: torch.Tensor,in_channels=9, out_channels=1,
                  pool_ratios=0.5, act=F.elu):
         super().__init__()
         assert len(input_shape) == 3, "invalid input shape, should be (img_width, img_height, dim)"
@@ -64,49 +64,49 @@ class HeatMapNet(torch.nn.Module):
 
     #for GCNConv
     def forward(self,data: torch_geometric.data.Batch):
-        data.edge_weight = data.x.new_ones(data.edge_index.size(1))
+        # data.edge_weight = data.x.new_ones(data.edge_index.size(1))
 
         #Encoder
-        data.x = self.act(self.conv1(data.x, data.edge_index,data.edge_weight))
+        data.x = self.act(self.conv1(data.x, data.edge_index))
         data.x = self.norm1(data.x)
-        data.x = self.act(self.conv2(data.x, data.edge_index,data.edge_weight))
+        data.x = self.act(self.conv2(data.x, data.edge_index))
         data.x = self.norm2(data.x)
         HeatMapA = data.x #保存原始大小的HeatMap,edge_index,edge_weight
         edge_indexA = data.edge_index 
-        edge_weightA = data.edge_weight
+        # edge_weightA = data.edge_weight
         data.x, data.edge_index, data.edge_weight, data.batch, permB, _= self.pool1(data.x,data.edge_index) #perm是留下来节点的idx
         
-        data.x = self.act(self.conv3(data.x, data.edge_index,data.edge_weight))
+        data.x = self.act(self.conv3(data.x, data.edge_index))
         data.x = self.norm3(data.x)
-        data.x = self.act(self.conv4(data.x, data.edge_index,data.edge_weight))
+        data.x = self.act(self.conv4(data.x, data.edge_index))
         data.x = self.norm4(data.x)
         HeatMapB = data.x #保存0.5大小的HeatMap,edge_index,edge_weight
         edge_indexB = data.edge_index 
-        edge_weightB = data.edge_weight
+        # edge_weightB = data.edge_weight
         data.x, data.edge_index, data.edge_weight, data.batch, permC, _= self.pool2(data.x,data.edge_index)
 
-        data.x = self.act(self.conv5(data.x, data.edge_index,data.edge_weight))
+        data.x = self.act(self.conv5(data.x, data.edge_index))
         data.x = self.norm5(data.x)
-        data.x = self.act(self.conv6(data.x, data.edge_index,data.edge_weight))
+        data.x = self.act(self.conv6(data.x, data.edge_index))
         data.x = self.norm6(data.x)
         HeatMapC = data.x #保存0.25大小的HeatMap,edge_index,edge_weight
         edge_indexC = data.edge_index 
-        edge_weightC = data.edge_weight
+        # edge_weightC = data.edge_weight
         data.x, data.edge_index, data.edge_weight, data.batch, permD, _= self.pool3(data.x,data.edge_index)
 
-        data.x = self.act(self.conv7(data.x, data.edge_index,data.edge_weight))
+        data.x = self.act(self.conv7(data.x, data.edge_index))
         data.x = self.norm7(data.x)
-        data.x = self.act(self.conv8(data.x, data.edge_index,data.edge_weight))
+        data.x = self.act(self.conv8(data.x, data.edge_index))
         data.x = self.norm8(data.x)
         HeatMapD = data.x #保存0.125大小的HeatMap,edge_index,edge_weight
         edge_indexD = data.edge_index 
-        edge_weightD = data.edge_weight
+        # edge_weightD = data.edge_weight
         
         #Decoder
-        HeatMapA = self.normPHeatmap(self.act(self.convPa(data.x, edge_indexA))) #输出4个size的10通道heatmap
-        HeatMapB = self.normPHeatmap(self.act(self.convPa(data.x, edge_indexB)))
-        HeatMapC = self.normPHeatmap(self.act(self.convPa(data.x, edge_indexC)))
-        HeatMapD = self.normPHeatmap(self.act(self.convPa(data.x, edge_indexD)))
+        HeatMapA = self.normPHeatmap(self.act(self.convPa(HeatMapA, edge_indexA))) #输出4个size的10通道heatmap
+        HeatMapB = self.normPHeatmap(self.act(self.convPb(HeatMapB, edge_indexB)))
+        HeatMapC = self.normPHeatmap(self.act(self.convPc(HeatMapC, edge_indexC)))
+        HeatMapD = self.normPHeatmap(self.act(self.convPd(HeatMapD, edge_indexD)))
         
         upD = torch.zeros_like(HeatMapC) #将不同size的heatmap合到一起
         upD[permD] = HeatMapD
@@ -120,7 +120,7 @@ class HeatMapNet(torch.nn.Module):
         upB[permB] = HeatMapBCD
         HeatMapABCD = upB+HeatMapA
 
-        x = HeatMapABCD
+        x = self.normPHeatmap(HeatMapABCD)
         
         return x
 

@@ -6,6 +6,7 @@ from aegnn.datasets.gen1 import Gen1
 from aegnn.datasets.syn import Syn
 from aegnn.datasets.syn_new import Syn_New
 from aegnn.datasets.syn_related import Syn_Related
+from aegnn.datasets.syn_heatmap import Syn_Heatmap
 
 
 ################################################################################################
@@ -24,5 +25,7 @@ def by_name(name: str) -> EventDataModule.__class__:
         return Syn_New
     elif name.lower() == "syn_related":
         return Syn_Related
+    elif name.lower() == "syn_heatmap":
+        return Syn_Heatmap
     else:
         raise NotImplementedError(f"Dataset with name {name} is not known!")
