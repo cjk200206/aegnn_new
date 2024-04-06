@@ -133,25 +133,25 @@ class EventPointNet(torch.nn.Module):
         data.x = self.norm1(data.x)
         data.x = self.act(self.conv2(data.x, data.edge_index))
         data.x = self.norm2(data.x)
-        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool1(data.x,data.edge_index)
+        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool1(data.x,data.edge_index,batch=data.batch)
         
         data.x = self.act(self.conv3(data.x, data.edge_index))
         data.x = self.norm3(data.x)
         data.x = self.act(self.conv4(data.x, data.edge_index))
         data.x = self.norm4(data.x)
-        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool2(data.x,data.edge_index)
+        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool2(data.x,data.edge_index,batch=data.batch)
 
         data.x = self.act(self.conv5(data.x, data.edge_index))
         data.x = self.norm5(data.x)
         data.x = self.act(self.conv6(data.x, data.edge_index))
         data.x = self.norm6(data.x)
-        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool3(data.x,data.edge_index)
+        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool3(data.x,data.edge_index,batch=data.batch)
 
         data.x = self.act(self.conv7(data.x, data.edge_index))
         data.x = self.norm7(data.x)
         data.x = self.act(self.conv8(data.x, data.edge_index))
         data.x = self.norm8(data.x)
-        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool4(data.x,data.edge_index)
+        data.x, data.edge_index, data.edge_attr, data.batch, _, _= self.pool4(data.x,data.edge_index,batch=data.batch)
 
         #Detector
         data.x = self.act(self.convPa(data.x, data.edge_index))

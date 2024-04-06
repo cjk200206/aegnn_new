@@ -18,7 +18,7 @@ class Syn_Related(NCaltech101):
         super(Syn_Related, self).__init__(batch_size, shuffle, num_workers, pin_memory=pin_memory, transform=transform)
         self.dims = (346, 260)  # overwrite image shape,改到davis346格式
         # pre_processing_params = {"r": 3.0, "d_max": 32, "n_samples": 10000, "sampling": True}
-        pre_processing_params = {"r": 3.0, "d_max": 9, "n_samples": 10000, "sampling": False}
+        pre_processing_params = {"r": 3.0, "d_max": 32, "n_samples": 10000, "sampling": False}
         self.save_hyperparameters({"preprocessing": pre_processing_params})
 
     def read_annotations(self, raw_file: str) -> Optional[np.ndarray]:
@@ -105,6 +105,15 @@ class Syn_Related(NCaltech101):
         corner_feature = corner_template.view(-1,9) #将角点模板转换到一维
         return corner_feature
 
+    #生成关联点
+    def create_related_points(self,data: Data) -> Data.y:
+        corner_idx = torch.where(data.y==1)[0]
+        related_points_indices_raw = torch.where(torch.isin(data.edge_index[1],corner_idx))[0] #找寻角点所在的边的索引
+        related_points_idx_raw = data.edge_index[0,related_points_indices_raw] #找寻角点所连接的点的索引
+        related_points_idx = related_points_idx_raw[torch.where(data.y[related_points_idx_raw]==0)[0]] #排除角点连接的角点
+        data.y[related_points_idx[:]]=1 #赋值新的标记
+        return data.y
+
     def pre_transform(self, data: Data) -> Data:
         params = self.hparams.preprocessing
 
@@ -121,12 +130,7 @@ class Syn_Related(NCaltech101):
         data.x = self.create_corner_feature(data)
         
         # 生成关联点
-        corner_idx = torch.where(data.y==1)[0]
-        related_points_indices_raw = torch.where(torch.isin(data.edge_index[1],corner_idx))[0] #找寻角点所在的边的索引
-        related_points_idx_raw = data.edge_index[0,related_points_indices_raw] #找寻角点所连接的点的索引
-        related_points_idx = related_points_idx_raw[torch.where(data.y[related_points_idx_raw]==0)[0]] #排除角点连接的角点
-        data.y[related_points_idx[:]]=1 #赋值新的标记
-
+        # data.y = self.create_related_points(data)
 
         return data
 

@@ -74,7 +74,7 @@ class HeatMapNet(torch.nn.Module):
         HeatMapA = data.x #保存原始大小的HeatMap,edge_index,edge_weight
         edge_indexA = data.edge_index 
         # edge_weightA = data.edge_weight
-        data.x, data.edge_index, data.edge_weight, data.batch, permB, _= self.pool1(data.x,data.edge_index) #perm是留下来节点的idx
+        data.x, data.edge_index, data.edge_weight, data.batch, permB, _= self.pool1(data.x,data.edge_index,batch=data.batch) #perm是留下来节点的idx
         
         data.x = self.act(self.conv3(data.x, data.edge_index))
         data.x = self.norm3(data.x)
@@ -83,7 +83,7 @@ class HeatMapNet(torch.nn.Module):
         HeatMapB = data.x #保存0.5大小的HeatMap,edge_index,edge_weight
         edge_indexB = data.edge_index 
         # edge_weightB = data.edge_weight
-        data.x, data.edge_index, data.edge_weight, data.batch, permC, _= self.pool2(data.x,data.edge_index)
+        data.x, data.edge_index, data.edge_weight, data.batch, permC, _= self.pool2(data.x,data.edge_index,batch=data.batch)
 
         data.x = self.act(self.conv5(data.x, data.edge_index))
         data.x = self.norm5(data.x)
@@ -92,7 +92,7 @@ class HeatMapNet(torch.nn.Module):
         HeatMapC = data.x #保存0.25大小的HeatMap,edge_index,edge_weight
         edge_indexC = data.edge_index 
         # edge_weightC = data.edge_weight
-        data.x, data.edge_index, data.edge_weight, data.batch, permD, _= self.pool3(data.x,data.edge_index)
+        data.x, data.edge_index, data.edge_weight, data.batch, permD, _= self.pool3(data.x,data.edge_index,batch=data.batch)
 
         data.x = self.act(self.conv7(data.x, data.edge_index))
         data.x = self.norm7(data.x)

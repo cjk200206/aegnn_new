@@ -40,13 +40,23 @@ class CornerHeatMapModel(pl.LightningModule):
     # Steps #######################################################################################
     ###############################################################################################
     def training_step(self, batch: torch_geometric.data.Batch, batch_idx: int) -> torch.Tensor:
+        batch_copy = batch.batch
         outputs = self.forward(data=batch)
-        y_prediction = torch.argmax(outputs, dim=0)
-        predictions = softmax(outputs, dim=0)
-        # #尝试模仿superpoint
-        # label,label_indice = labels2Dto3D(batch.y,self.out_channels)
-
         label = batch.y
+
+        max_batch = batch_copy.max().item() + 1  # Calculate the number of batches,计算最多有多少个batch
+        softmax_outputs = []
+        argmax_outputs = []
+        for i in range(max_batch):
+            mask = (batch_copy == i)  # Create a mask for nodes in the current batch，计算一个掩膜
+            output_batch = outputs[mask]  # Apply the mask to get outputs for the current batch
+            softmax_output = softmax(output_batch,dim=0)  # Calculate softmax
+            softmax_outputs.append(softmax_output)
+            argmax_output = torch.argmax(output_batch, dim=0)
+            argmax_outputs.append(argmax_output)
+        predictions = torch.cat(softmax_outputs, dim=0)
+        y_prediction = torch.cat(argmax_outputs, dim=0) 
+
         loss = self.criterion(predictions, target=label.cuda().to(torch.float))
         # accuracy = pl_metrics.accuracy(preds=y_prediction, target=label)
         # recall = pl_metrics.recall(preds=y_prediction,target=label)
@@ -56,12 +66,22 @@ class CornerHeatMapModel(pl.LightningModule):
 
 
     def validation_step(self, batch: torch_geometric.data.Batch, batch_idx: int) -> torch.Tensor:
+        batch_copy = batch.batch
         outputs = self.forward(data=batch)
-        y_prediction = torch.argmax(outputs, dim=0)
-        predictions = softmax(outputs, dim=0)
-        # #尝试模仿superpoint
-        # label,label_indice = labels2Dto3D(batch.y,self.out_channels)
         label = batch.y
+
+        max_batch = batch_copy.max().item() + 1  # Calculate the number of batches,计算最多有多少个batch
+        softmax_outputs = []
+        argmax_outputs = []
+        for i in range(max_batch):
+            mask = (batch_copy == i)  # Create a mask for nodes in the current batch，计算一个掩膜
+            output_batch = outputs[mask]  # Apply the mask to get outputs for the current batch
+            softmax_output = softmax(output_batch,dim=0)  # Calculate softmax
+            softmax_outputs.append(softmax_output)
+            argmax_output = torch.argmax(output_batch, dim=0)
+            argmax_outputs.append(argmax_output)
+        predictions = torch.cat(softmax_outputs, dim=0) 
+        y_prediction = torch.cat(argmax_outputs, dim=0)
 
         self.log("Val/Loss", self.criterion(predictions, target=label.to(torch.float)))
         # self.log("Val/Loss", self.criterion(predictions, target=label_indice))
