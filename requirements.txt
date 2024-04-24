@@ -1,5 +1,5 @@
-torch==1.9.1
-torchvision==0.10
+# torch==1.9.1
+# torchvision==0.10
 torchmetrics==0.4
 torch-geometric==1.7.2
 torchvision

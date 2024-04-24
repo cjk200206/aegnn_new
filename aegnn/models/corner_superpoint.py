@@ -29,8 +29,8 @@ class CornerSuperpointModel(pl.LightningModule):
         loss_weight.squeeze()
 
         self.optimizer_kwargs = dict(lr=learning_rate)
-        # self.criterion = torch.nn.CrossEntropyLoss(weight=loss_weight)
-        self.criterion = FocalLoss(gamma=2, alpha=torch.tensor([0.5]*(self.out_channels+1)))
+        self.criterion = torch.nn.BCELoss(reduction="none")
+        # self.criterion = FocalLoss(gamma=2, alpha=torch.tensor([0.5]*(self.out_channels+1)))
         # self.num_outputs = num_classes
         self.dim = dim
         model_input_shape = torch.tensor(img_shape + (dim, ), device=self.device)
@@ -65,18 +65,23 @@ class CornerSuperpointModel(pl.LightningModule):
         label_indices = torch.cat(label_indices, dim=0)
 
         ##评价指标
-        loss = self.criterion(outputs.cuda(), target=label_indices)
+        # loss = self.criterion(outputs.cuda(), target=label_indices)
+        loss = self.criterion(predictions, target=labels).sum()/labels.shape[0]
         accuracy = pl_metrics.accuracy(preds=y_prediction, target=label_indices)
-        valid_idxs = torch.where(label_indices != 16)
-        if len(valid_idxs[0]) != 0:
-            accuracy_valid = pl_metrics.accuracy(preds=y_prediction[valid_idxs], target=label_indices[valid_idxs])
-            loss_valid = self.criterion(outputs[valid_idxs].cuda(), target=label_indices[valid_idxs].cuda())
-        else:
-            accuracy_valid = 0
-            loss_valid = 0
+        # valid_idxs = torch.where(label_indices != 16)
+        # if len(valid_idxs[0]) != 0:
+        #     accuracy_valid = pl_metrics.accuracy(preds=y_prediction[valid_idxs], target=label_indices[valid_idxs])
+        #     loss_valid = self.criterion(outputs[valid_idxs].cuda(), target=label_indices[valid_idxs].cuda())
+        # else:
+        #     accuracy_valid = 0
+        #     loss_valid = 0
         recall = pl_metrics.recall(preds=y_prediction,target=label_indices)
-        self.logger.log_metrics({"Train/Loss": loss, "Train/Loss_Valid": loss_valid,"Train/Accuracy": accuracy, "Train/Accuracy_Valid": accuracy_valid, "Train/Recall": recall}, step=self.trainer.global_step)
-        return loss+loss_valid
+        # self.logger.log_metrics({"Train/Loss": loss, "Train/Loss_Valid": loss_valid,\
+        #                          "Train/Accuracy": accuracy, "Train/Accuracy_Valid": accuracy_valid, "Train/Recall": recall}, step=self.trainer.global_step)
+        # return loss+loss_valid
+        
+        self.logger.log_metrics({"Train/Loss": loss, "Train/Accuracy": accuracy, "Train/Recall": recall}, step=self.trainer.global_step)
+        return loss
 
     def validation_step(self, batch: torch_geometric.data.Batch, batch_idx: int) -> torch.Tensor:
         #计算两类样本的相似度
@@ -86,8 +91,8 @@ class CornerSuperpointModel(pl.LightningModule):
         is_corner = batch.x[is_corner_idx].cpu()
         # not_corner = tuple(not_corner[:])
         # is_corner = tuple(is_corner[:])
-        dis1,dis2,dis1_2 = data_evaluation(not_corner,is_corner)
-        print("\ndis1:",dis1,"\ndis2:",dis2,"\ndis1_2:",dis1_2)
+        # dis1,dis2,dis1_2 = data_evaluation(not_corner,is_corner)
+        # print("\ndis1:",dis1,"\ndis2:",dis2,"\ndis1_2:",dis1_2)
 
         batch_copy = batch.batch
         label = batch.y
@@ -109,19 +114,20 @@ class CornerSuperpointModel(pl.LightningModule):
         label_indices = torch.cat(label_indices, dim=0)
 
         ##评价指标
-        self.log("Val/Loss", self.criterion(outputs, target=label_indices))
+        # self.log("Val/Loss", self.criterion(outputs, target=label_indices))
+        self.log("Val/Loss", self.criterion(predictions, target=labels).sum()/labels.shape[0])
         self.log("Val/Accuracy", pl_metrics.accuracy(preds=y_prediction, target=label_indices))
         self.log("Val/Recall",pl_metrics.recall(preds=y_prediction,target=label_indices)) #加入召回率评价
-        valid_idxs = torch.where(label_indices != 16)
-        if batch_idx == 9:
-            print("\npred:",y_prediction[valid_idxs], "\ngt:",label_indices[valid_idxs]) #加入效果查看
+        # valid_idxs = torch.where(label_indices != 16)
+        # if batch_idx == 9:
+        #     print("\npred:",y_prediction[valid_idxs], "\ngt:",label_indices[valid_idxs]) #加入效果查看
 
-        if len(valid_idxs[0]) != 0:
-            self.log("Val/Accuracy_Valid", pl_metrics.accuracy(preds=y_prediction[valid_idxs], target=label_indices[valid_idxs]))
-            self.log("Val/Loss_Valid", self.criterion(outputs[valid_idxs].cuda(), target=label_indices[valid_idxs].cuda()))
-        else:
-            self.log("Val/Accuracy_Valid",0)
-            self.log("Val/Loss_Valid",0)
+        # if len(valid_idxs[0]) != 0:
+        #     self.log("Val/Accuracy_Valid", pl_metrics.accuracy(preds=y_prediction[valid_idxs], target=label_indices[valid_idxs]))
+        #     self.log("Val/Loss_Valid", self.criterion(outputs[valid_idxs].cuda(), target=label_indices[valid_idxs].cuda()))
+        # else:
+        #     self.log("Val/Accuracy_Valid",0)
+        #     self.log("Val/Loss_Valid",0)
         
 
         return predictions

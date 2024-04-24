@@ -80,7 +80,7 @@ class Syn_Heatmap(NCaltech101):
         return cropped_events,start_idx,end_idx
     
     #将时空事件流建立边关系后，转到3*3的角点空间表示中
-    def create_corner_feature(self,data: Data) -> Data.x: 
+    def create_corner_feature(self,data: Data): 
         corner_template = torch.zeros(data.x.shape[0],3,3) #定义角点模板
         # corner_center = self.pos #定义时空上的角点中心
         edge_start = data.edge_index[0,:]
@@ -103,7 +103,7 @@ class Syn_Heatmap(NCaltech101):
         return corner_feature
     
     #选取开头和结尾各corner_num个角点
-    def create_heatmap(self,data: Data,corner_num = 3) -> Data.y:
+    def create_heatmap(self,data: Data,corner_num = 3):
         corner_idx = torch.where(data.y==1)[0]
         first_idx = corner_idx[:corner_num]
         last_idx = corner_idx[-corner_num:]
@@ -115,7 +115,7 @@ class Syn_Heatmap(NCaltech101):
 
 
     #生成关联点
-    def create_related_points(self,data: Data) -> Data.y:
+    def create_related_points(self,data: Data):
         corner_idx = torch.where(data.y==1)[0]
         related_points_indices_raw = torch.where(torch.isin(data.edge_index[1],corner_idx))[0] #找寻角点所在的边的索引
         related_points_idx_raw = data.edge_index[0,related_points_indices_raw] #找寻角点所连接的点的索引
